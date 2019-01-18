@@ -231,17 +231,14 @@ def move_unit(left=0,right=0,up=0,down=0, random_move=False, max_manhattan=5):
     ret_list = [left,right,up,down]
     #optimize the movement process so excess moves aren't performed
     if left>right:
-        for _ in range(left-right):
-            press_key('a')
+        press_key('a', left-right)
     elif right>left:
-        for _ in range(right-left):
-            press_key('d')
+        press_key('d', right-left)
     if up>down:
-        for _ in range(up-down):
-            press_key('w')
+        press_key('w', up-down)
     elif down>up:
-        for _ in range(down-up):
-            press_key('s')
+        press_key('s', down-up)
+
     
     press_key("'")
     time.sleep(0.2)
