@@ -60,6 +60,75 @@ def choose_option(options, random_opt=False):
                 return 'Wait'
 
 
+def enemy_phase_break(stall = 5):
+    time.sleep(stall)
+
+    
+def gen_data_prologue():
+    taking_turns = True
+    while taking_turns:
+        state = []
+        act = []
+
+        #Grab Board State
+        select_next_unit()
+        press_key(';')
+        name = grab_name()
+        if not name:
+            break
+        act.append(name)
+        press_key('w')
+        press_key("'")
+        press_key('s')
+        press_key("'")
+        board_state = grab_board_state()
+        press_key(';',2)
+
+        metric = board_state[1]/board_state[2]
+        
+
+        state.append(board_state[0])
+        state.append(board_state[1])
+        state.append(board_state[2])
+
+        #Set Options on 1st Turn Only
+        if state[2] == 1:
+            set_options()
+            time.sleep(0.2)
+
+        #Execute Actions
+        select_next_unit()
+        press_key('e')
+        d = grab_stats()
+        df = pd.DataFrame(d, index=[name], columns=d.keys())
+        state.extend(df.values[0])
+        press_key(';')
+        moves = move_unit(random_move=True)
+        act.extend(list(moves))
+        opts = grab_options()
+        if not opts:
+            act.append("Invalid move")
+            break
+        else:
+            selection = choose_option(opts, random_opt=True)
+            act.append(selection)
+        
+        metrics.append(metric)
+        states.append(state)
+        actions.append(act)
+
+        if state[2] == 1:
+            time.sleep(5)
+            press_key('Enter')
+            time.sleep(1)
+        else:
+            enemy_phase_break(7)
+
+        #Break loop if turn count greater than 8
+        if state[2] > 8:
+            break    
+    
+    
 def grab_board_state(model = 'block_text_logreg.pkl'):
     """
     *expects screen to be at 'status' menu*
@@ -71,6 +140,7 @@ def grab_board_state(model = 'block_text_logreg.pkl'):
     - gold count: leave out initially, but eventually factor into loss function
     
     """
+    time.sleep(0.5)
     
     block_reader = pickle.load(open(model, 'rb'))
     screen = np.array(ImageGrab.grab(bbox=(0,0,600,600)))
@@ -270,16 +340,34 @@ def padder(test_img):
         print(ret_img.shape)
 
 
-def press_key(key, n_times = 1):
+def press_key(key, n_times = 1, interrupt=0):
     for _ in range(n_times):
         pyautogui.keyDown(key)
         pyautogui.keyUp(key)
+        time.sleep(interrupt)
 
 
 def processed_img(original_image):
     processed_img = cv2.cvtColor(original_image,cv2.COLOR_BGR2GRAY)
     procssed_img = cv2.Canny(processed_img,threshold1=300, threshold2=450)
     return processed_img
+
+
+def reset_to_prologue():
+    """
+    Assumes there is the resume chapter option
+    DO NOT USE FUNCTION WITHOUT THIS OPTION, IT WILL SELECT ERASE DATA
+    """ 
+    pyautogui.hotkey('command', 'r')
+    time.sleep(2.2)
+    press_key('enter', 2, 2)
+    press_key('s')
+    press_key("'", 2, 0.5)
+    time.sleep(1.8)
+    press_key('a')
+    press_key("'")
+    time.sleep(2)
+    press_key('enter', 4, 1.5)
 
 
 def select_next_unit():
@@ -293,11 +381,11 @@ def set_options(right=5,down=5):
     press_key("'")
     press_key('s',2)
     press_key("'")
-    press_key('d',2)
+    press_key('d',3)
     press_key('s')
     press_key('d')
     press_key('s')
-    press_key('d',3)
+    press_key('d',2)
     press_key(';')
 
         
