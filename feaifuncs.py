@@ -31,7 +31,8 @@ def choose_option(options, random_opt=False):
     if random_opt:
         ind = random.randint(0,len(options)-1)
         choice = options[ind]
-        if 'ttac' in choice:
+        #if 'ttac' in choice:
+        if 'Attack' in options:
             press_key("'",3)
             return 'Attack'
         elif 'tem' in choice:
@@ -59,7 +60,17 @@ def choose_option(options, random_opt=False):
                 wait()
                 return 'Wait'
 
-            
+def choose_option_given_opt(choice):
+    if choice == 'Wait':
+        wait()
+        return 'Wait'
+    elif choice == 'Item':
+        use_item()
+        return 'Item'
+    elif choice == 'Attack':
+        press_key("'", 3)
+        return 'Attack'
+
 def double_check_name():
     screen = np.array(ImageGrab.grab(bbox=(125,297,175,332)))
     for i, row in enumerate(screen):
@@ -93,9 +104,7 @@ def grab_board_state(model = 'block_text_logreg.pkl'):
     player_unit_count_sc1 = subscreen(398,225,422,255,screen)
     puc1 = int(block_reader.predict(padder(player_unit_count_sc1).reshape(30*24*4).reshape(1,-1))[0])
     player_unit_count_sc10 = subscreen(374,225,398,255,screen)
-    #reinstate once the classifier has more training
-    #puc10 = int(block_reader.predict(padder(player_unit_count_sc10).reshape(30*24*4).reshape(1,-1))[0])
-    puc10 = 0
+    puc10 = int(block_reader.predict(padder(player_unit_count_sc10).reshape(30*24*4).reshape(1,-1))[0])
     puc = 10 * puc10 + puc1
     
     enemy_unit_count_sc1 = subscreen(520,224,544,254,screen)
@@ -107,11 +116,8 @@ def grab_board_state(model = 'block_text_logreg.pkl'):
     turn_count_sc1 = subscreen(243,367,267,397,screen)
     tc1 = int(block_reader.predict(padder(turn_count_sc1).reshape(30*24*4).reshape(1,-1))[0])
     turn_count_sc10 = subscreen(219,367,243,397,screen)
-    #reinstate once the classifier has more training
-    #tc10 = int(block_reader.predict(padder(turn_count_sc10).reshape(30*24*4).reshape(1,-1))[0])
-    tc10 = 0
+    tc10 = int(block_reader.predict(padder(turn_count_sc10).reshape(30*24*4).reshape(1,-1))[0])
     tc = 10 * tc10 + tc1
-
     return puc,euc,tc
 
 
@@ -243,7 +249,7 @@ def move_unit(left=0,right=0,up=0,down=0, random_move=False, max_manhattan=5):
             down = random.randint(0,max_manhattan+1)
             if abs(left-right) + abs(up-down) <= max_manhattan:
                 finding_move = False
-    ret_list = [left,right,up,down]
+    ret_list = [right-left,up-down]
     #optimize the movement process so excess moves aren't performed
     if left>right:
         press_key('a', left-right)
