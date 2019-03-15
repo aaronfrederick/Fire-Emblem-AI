@@ -77,6 +77,91 @@ def gen_data_prologue(states = [], actions = [], metrics = []):
             break  
     return states, actions, metrics
 
+def take_turn(explore, qtable, act_tuple=None):
+    act = []
+    #Grab Board State
+    select_next_unit()
+    press_key(';')
+    time.sleep(0.2)
+    name = grab_name()
+    if not name:
+        press_key('e')
+        name = double_check_name()
+        press_key(';')
+        if not name:
+            print('Broken for no name found')
+            return None
+    act.append(name)
+    press_key('w')
+    press_key("'")
+    press_key('s')
+    press_key("'")
+    board_state = grab_board_state()
+    press_key(';',2)
+
+    metric = board_state[1] #+ board_state[2]
+
+    #Set Options on 1st Turn Only
+    if board_state[2] == 1:
+        set_options()
+        time.sleep(0.2)
+
+    #Execute Actions
+    select_next_unit()
+    
+    #currently not grabbing stats
+    #press_key('e')
+    #d = grab_stats()
+    #df = pd.DataFrame(d, index=[name], columns=d.keys())
+    #state.extend(df.values[0])
+    #press_key(';')
+    
+    if explore:
+        moves = move_unit(random_move=True)
+    else:
+#         #if exploiting, take best move from qtable
+#         ind = np.argmax(qtable[state,:])
+#         #print(ind)
+#         move = move_dict[ind]
+        l_r = act_tuple[0]
+        u_d = act_tuple[1]
+        if l_r < 0:
+            move = [-l_r, 0]
+        else:
+            move = [0, l_r]
+        if u_d < 0:
+            move.extend([-u_d, 0])
+        else:
+            move.extend([0, u_d])
+        moves = move_unit(move[0],move[1],move[2],move[3])
+    act.extend(list(moves))
+    
+    opts = grab_options()
+    if not opts:
+        act.append("Invalid move")
+        #print('Broken for Invalid Move')
+        return act, -2
+    else:
+        if explore:
+            selection = choose_option(opts, random_opt=True)
+        else:
+            choice = act_tuple[2]
+            #print(choice)
+            if choice == 'Attack' and choice not in opts:
+                selection = choose_option_given_opt('Wait')
+            else:
+                selection = choose_option_given_opt(choice)
+    act.append(selection)
+    
+    if board_state[2] == 1:
+        time.sleep(5)
+        press_key('Enter')
+        time.sleep(1)
+    else:
+        enemy_phase_break(7)
+    
+    return act, 2 - metric
+    
 
 def reset_to_prologue():
     """
