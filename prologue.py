@@ -90,7 +90,7 @@ def take_turn(explore, qtable, act_tuple=None):
         press_key(';')
         if not name:
             print('Broken for no name found')
-            return None
+            return ['',0,0,''], 0
     act.append(name)
     press_key('w')
     press_key("'")
@@ -99,7 +99,10 @@ def take_turn(explore, qtable, act_tuple=None):
     board_state = grab_board_state()
     press_key(';',2)
 
-    metric = board_state[1] #+ board_state[2]
+    if board_state[1] == 0:
+        metric = 2
+    else:
+        metric = board_state[1] #+ board_state[2]
 
     #Set Options on 1st Turn Only
     if board_state[2] == 1:
@@ -130,9 +133,9 @@ def take_turn(explore, qtable, act_tuple=None):
         else:
             move = [0, l_r]
         if u_d < 0:
-            move.extend([-u_d, 0])
+            move.extend([u_d, 0])
         else:
-            move.extend([0, u_d])
+            move.extend([0, -u_d])
         moves = move_unit(move[0],move[1],move[2],move[3])
     act.extend(list(moves))
     
@@ -163,6 +166,56 @@ def take_turn(explore, qtable, act_tuple=None):
     return act, 2 - metric
     
 
+def fast_turn(act_tuple):
+    act = []
+    #Grab Board State
+    select_next_unit()
+    press_key(';')
+    time.sleep(0.2)
+
+    press_key('w')
+    press_key("'")
+    press_key('s')
+    press_key("'")
+    board_state = grab_board_state()
+    press_key(';', 2)
+
+    metric = board_state[1] #+ board_state[2]
+
+    #Set Options on 1st Turn Only
+    if board_state[2] == 1:
+        set_options()
+        time.sleep(0.2)
+
+    #Execute Actions
+    select_next_unit()
+
+    l_r = act_tuple[0]
+    u_d = act_tuple[1]
+    if l_r < 0:
+        move = [-l_r, 0]
+    else:
+        move = [0, l_r]
+    if u_d < 0:
+        move.extend([u_d, 0])
+    else:
+        move.extend([0, -u_d])
+    moves = move_unit(move[0],move[1],move[2],move[3])
+    act.extend(list(moves))
+    
+
+    choice = act_tuple[2]
+    selection = choose_option_given_opt(choice)
+    
+    act.append(selection)
+    
+    if board_state[2] == 1:
+        time.sleep(5)
+        press_key('Enter')
+        time.sleep(1)
+    else:
+        enemy_phase_break(7)
+    
 def reset_to_prologue():
     """
     Assumes there is the resume chapter option

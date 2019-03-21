@@ -65,6 +65,8 @@ def choose_option_given_opt(choice):
         wait()
         return 'Wait'
     elif choice == 'Item':
+        press_key("w", 2)
+        press_key("'")
         use_item()
         return 'Item'
     elif choice == 'Attack':
@@ -336,9 +338,9 @@ def subscreen(x0,y0,x1,y1, screen):
 
 def use_item(slot=1,random_item=False):
     if random_item:
-        press_key('s',random.randint(0,5))
+        press_key('s',random.randint(0,5), 0.5)
     else:
-        press_key('s',slot)
+        press_key('s',slot, 0.5)
     press_key("'",2)
     press_key(";")
     time.sleep(0.2)
