@@ -62,8 +62,8 @@ class Unit():
 		#setup dictionaries
 		
 		index = 0
-		for i in range(15):
-		    for j in range(10):
+		for i in range(map_x):
+		    for j in range(map_y):
 		        self.states_to_indices[(i,j)] = index
 		        index += 1
 
