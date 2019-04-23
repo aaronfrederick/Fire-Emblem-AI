@@ -9,9 +9,49 @@ from sklearn.linear_model import LogisticRegression
 import pyautogui
 import random
 import math
-    
+from unit import Unit
 
-def choose_option(options, random_opt=False):
+
+def attack_in_opts(opts):
+    if not opts:
+        return False
+
+    if 'Attack' in opts:
+        return True
+
+    for option in opts:
+        if 'tac' in option:
+            return True
+            
+    return False
+  
+
+def check_death_quote(death_quotes_dict):
+    '''
+    looks for a quote on screen and checks if that quote is a death quote
+    returns a name if someone died, returns empty string otherwise
+    BUG ALERT: RETURNS NOT DEATH WHEN NO QUOTE
+    '''
+    screen = np.array(ImageGrab.grab(bbox=(0,0,600,400)))
+    long_screen = subscreen(290,165,480,265, screen)
+    short_screen = subscreen(210,165,500,265, screen)
+    long_text = pytesseract.image_to_string(long_screen)
+    short_text = pytesseract.image_to_string(short_screen)
+    if not long_text and not short_text:
+        return ''
+    elif len(long_text) > len(short_text):
+        if long_text in death_quotes_dict.keys():
+            return death_quotes_dict[long_text]
+        else:
+            return 'NOT DEATH'
+    else:
+        if short_text in death_quotes_dict.keys():
+            return death_quotes_dict[short_text]
+        else:
+            return 'NOT DEATH'
+
+
+def choose_option(options, random_opt=False, slot=1):
     """
     When a unit is finished moving, this function selects their next choice
     currently supported actions:
@@ -54,20 +94,20 @@ def choose_option(options, random_opt=False):
             if 'tem' in options[choice]:
                     press_key('s',choice)
                     press_key("'")
-                    use_item()
+                    use_item(slot)
                     return 'Item'
             else:
                 wait()
                 return 'Wait'
 
-def choose_option_given_opt(choice):
+def choose_option_given_opt(choice, slot=1):
     if choice == 'Wait':
         wait()
         return 'Wait'
     elif choice == 'Item':
         press_key("w", 2)
         press_key("'")
-        use_item()
+        use_item(slot)
         return 'Item'
     elif choice == 'Attack':
         press_key("'", 3)
@@ -311,6 +351,13 @@ def select_next_unit():
     press_key("'")
 
 
+def select_vba():
+    #Select VBA
+    pyautogui.moveTo(7,54,0.2)
+    pyautogui.click()
+    time.sleep(0.3)
+
+
 def set_options(right=5,down=5):
     press_key('d',right)
     press_key('s',down)
@@ -344,10 +391,9 @@ def use_item(slot=1,random_item=False):
     press_key("'",2)
     press_key(";")
     time.sleep(0.2)
-    press_key(";")
-    press_key(";")
+    press_key(";", 2)
     wait()
-    wait()
+    #wait()
 
 
 def wait():
@@ -355,3 +401,48 @@ def wait():
     press_key('w')
     time.sleep(0.2)
     press_key("'")
+
+
+################################################################################################################
+###################################  RESET FUNCTIONS FOR DIFFERENT CHAPTERS  ###################################
+################################################################################################################
+
+def reset_to_prologue():
+    """
+    Assumes there is the resume chapter option
+    DO NOT USE FUNCTION WITHOUT THIS OPTION, IT WILL SELECT ERASE DATA
+    """ 
+    pyautogui.hotkey('command', 'r')
+    time.sleep(2.2)
+    press_key('enter', 2, 2)
+    press_key('s')
+    press_key("'", 2, 0.5)
+    time.sleep(1.8)
+    press_key('a')
+    press_key("'")
+    time.sleep(2)
+    press_key('enter', 4, 1.5)
+
+def reset_to_ch1():
+    """
+    Assumes there is the resume chapter option
+    DO NOT USE FUNCTION WITHOUT THIS OPTION, IT WILL SELECT ERASE DATA
+    """ 
+    pyautogui.hotkey('command', 'r')
+    time.sleep(2.2)
+    press_key('enter', 2, 2)
+    press_key('s')
+    press_key("'", 2, 0.5)
+    time.sleep(1.2)
+    press_key('a')
+    press_key("'")
+    time.sleep(2)
+    press_key('enter', 4, 1.4)
+
+
+################################################################################################################
+###################################  TEST FUNCTIONS FOR SOLVING CHAPTERS  ######################################
+################################################################################################################
+
+
+
