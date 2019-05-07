@@ -142,20 +142,25 @@ class Unit():
 
 	def initialize_qtable_with_target(self, target):
 		for i, row in enumerate(self.qtable):
-		    for j, value in enumerate(row):
-		        action = self.indices_to_moves_and_actions[j]
-		        x_final = self.state[0] + action[0]
-		        y_final = self.state[1] + action[1]
-		        next_square = (x_final,y_final)
-		        init_value = 1 - (dist(next_square,target)/dist(self.state,target))
-		        self.qtable[i,j] = init_value
+			for j, value in enumerate(row):
+				state = self.indices_to_states[i]
+				action = self.indices_to_moves_and_actions[j]
+				x_final = self.state[0] + action[0]
+				y_final = self.state[1] + action[1]
+
+				if x_final > target[0] or y_final > target[1] or x_final < 0 or y_final < 0:
+					self.qtable[i,j] = -1
+				else:
+					next_square = (x_final,y_final)
+					init_value = 1 - (dist(next_square,target)/(dist(state,target)+0.00000001))
+					self.qtable[i,j] = init_value
 
 
 	def update_qtable_invalid_move(self):
 		state_index = self.states_to_indices[self.state]
 		for act in ['Attack', 'Item', 'Wait']:
 			action_index = self.moves_and_actions_to_indices[(self.current_move[0], self.current_move[1], act)]
-			self.qtable[state_index, action_index] *= 0.8
+			self.qtable[state_index, action_index] -= 0.6
 
 
 	def update_qtable_with_reward(self, reward):
@@ -164,22 +169,37 @@ class Unit():
 		self.qtable[state_index, action_index] += reward
 
 
+	# def update_qtable_death(self, target=False):
+	# 	#when looping through units, we want to penalize the person that died the most, others less
+	# 	if target:
+	# 		death_penalty = 0.5
+	# 	else:
+	# 		death_penalty = 0.1
+
+	# 	state_index = self.states_to_indices[self.all_states[-2]]
+	# 	action_index = self.moves_and_actions_to_indices[self.all_moves[-1]]
+	# 	self.qtable[state_index, action_index] -= death_penalty
+
+	#decay all paths up until death
 	def update_qtable_death(self, target=False):
-		#when looping through units, we want to penalize the person that died the most, others less
 		if target:
-			death_penalty = 0.5
+			decay = 0.9
 		else:
-			death_penalty = 0.1
+			decay = 0.97
 
-		state_index = self.states_to_indices[self.state]
-		action_index = self.moves_and_actions_to_indices[self.all_moves[-1]]
-		self.qtable[state_index, action_index] -= death_penalty
+		for i in range(len(self.all_moves)):
+		    state = self.all_states[i]
+		    action = self.all_moves[i]
+		    
+		    si = self.states_to_indices[state]
+		    ai = self.moves_and_actions_to_indices[action]
+		    self.qtable[si, ai] *= (decay**(i+1))
 
 
-	def save_qtable(chapter):
+	def save_qtable(self, chapter):
 		np.save(f'data/chapter{chapter}_{self.name}', self.qtable)
 
 
-	def load_qtable(chapter):
-		self.qtable = np.load(f'data/chapter{chapter}_{self.name}')
+	def load_qtable(self, chapter):
+		self.qtable = np.load(f'data/chapter{chapter}_{self.name}.npy')
 

@@ -9,8 +9,7 @@ from sklearn.linear_model import LogisticRegression
 import pyautogui
 import random
 import math
-from unit import Unit
-
+from difflib import SequenceMatcher
 
 def attack_in_opts(opts):
     if not opts:
@@ -26,29 +25,52 @@ def attack_in_opts(opts):
     return False
   
 
-def check_death_quote(death_quotes_dict):
+def check_death_quote():
     '''
     looks for a quote on screen and checks if that quote is a death quote
     returns a name if someone died, returns empty string otherwise
     BUG ALERT: RETURNS NOT DEATH WHEN NO QUOTE
     '''
+    death_quotes_dict = pickle.load(open('data/death_quotes.pkl', 'rb'))
+
     screen = np.array(ImageGrab.grab(bbox=(0,0,600,400)))
     long_screen = subscreen(290,165,480,265, screen)
     short_screen = subscreen(210,165,500,265, screen)
     long_text = pytesseract.image_to_string(long_screen)
     short_text = pytesseract.image_to_string(short_screen)
+    
     if not long_text and not short_text:
         return ''
-    elif len(long_text) > len(short_text):
-        if long_text in death_quotes_dict.keys():
-            return death_quotes_dict[long_text]
-        else:
-            return 'NOT DEATH'
-    else:
-        if short_text in death_quotes_dict.keys():
-            return death_quotes_dict[short_text]
-        else:
-            return 'NOT DEATH'
+    
+    if len(long_text) > len(short_text):
+        for quote in death_quotes_dict.keys():
+            if similar(long_text, quote) > 0.6:
+                return death_quotes_dict[quote]
+        return 'NOT DEATH'
+            
+    elif len(short_text) > len(long_text):
+        for quote in death_quotes_dict.keys():
+            if similar(short_text, quote) > 0.6:
+                return death_quotes_dict[quote]
+        return 'NOT DEATH'
+
+
+def check_enemy_quote():
+    '''
+    looks for enemy quote, returns true if there is one, false otherwise
+    '''
+    screen = np.array(ImageGrab.grab(bbox=(0,0,600,400)))
+    long_screen = subscreen(30,165,250,265, screen)
+    short_screen = subscreen(100,165,250,265, screen)
+    long_text = pytesseract.image_to_string(long_screen)
+    short_text = pytesseract.image_to_string(short_screen)
+    
+    
+    print(long_text, short_text)
+    if not long_text and not short_text:
+        return False
+    
+    return True
 
 
 def choose_option(options, random_opt=False, slot=1):
@@ -123,10 +145,36 @@ def double_check_name():
     return pytesseract.image_to_string(screen)
             
 
-def enemy_phase_break(stall = 5):
+def enemy_phase_break(stall = 5, max_stall = 24):
+    start = time.time()
     time.sleep(stall)
+    on_break = True
+    while on_break:
+        if time.time() - start > max_stall:
+            break
 
-    
+        eq = check_enemy_quote()
+        if eq:
+            press_key('enter', 0, 1)
+            continue
+
+        dq = check_death_quote()
+        #print('ON BREAK:', dq)
+        if dq and dq == 'NOT DEATH':
+            press_key('enter', 2, 0.4)
+            time.sleep(2)
+            continue
+
+        elif dq and dq !='NOT DEATH':
+            break
+        
+        name = grab_name()
+        if name:
+            break
+
+        time.sleep(2)
+
+
 def grab_board_state(model = 'block_text_logreg.pkl'):
     """
     *expects screen to be at 'status' menu*
@@ -246,30 +294,36 @@ def grab_options():
     
     processed image makes no difference
     """
-    options = []
-    screen = np.array(ImageGrab.grab(bbox=(0,0,600,400)))
-    
-    #long_1 = np.array(ImageGrab.grab(bbox=(30,130,150,350)))
-    long_1 = subscreen(30,130,150,350, screen)
-    short_1 = subscreen(30,157,150,263,screen)
-    med_1 = subscreen(30,164,150,290,screen)
-    long_2 = subscreen(470,140,590,355,screen)
-    short_2 = subscreen(455,157,572,263,screen)
-    mid_2 = subscreen(455,164,572,290,screen)
-    
-    long_text1 = pytesseract.image_to_string(inverted_grayscale(long_1))
-    short_text1 = pytesseract.image_to_string(inverted_grayscale(short_1))
-    mid_text1 = pytesseract.image_to_string(inverted_grayscale(med_1))
-    long_text2 = pytesseract.image_to_string(inverted_grayscale(long_2))
-    short_text2 = pytesseract.image_to_string(inverted_grayscale(short_2))
-    mid_text2 = pytesseract.image_to_string(inverted_grayscale(mid_2))
-    
-    for entry in [short_text1.split(),short_text2.split(),
-                 mid_text1.split(), mid_text2.split(),
-                 long_text1.split(), long_text2.split()]:
-        for token in entry:
-            if len(token) > 3 and token not in options:
-                options.append(token)
+    #2 checks, passing through
+    for _ in range(4):
+        options = []
+        screen = np.array(ImageGrab.grab(bbox=(0,0,600,400)))
+        
+        #long_1 = np.array(ImageGrab.grab(bbox=(30,130,150,350)))
+        long_1 = subscreen(30,130,150,350, screen)
+        short_1 = subscreen(30,157,150,263,screen)
+        med_1 = subscreen(30,164,150,290,screen)
+        long_2 = subscreen(456,140,590,355,screen)
+        short_2 = subscreen(456,157,572,263,screen)
+        mid_2 = subscreen(456,164,572,290,screen)
+        
+        long_text1 = pytesseract.image_to_string(inverted_grayscale(long_1))
+        short_text1 = pytesseract.image_to_string(inverted_grayscale(short_1))
+        mid_text1 = pytesseract.image_to_string(inverted_grayscale(med_1))
+        long_text2 = pytesseract.image_to_string(inverted_grayscale(long_2))
+        short_text2 = pytesseract.image_to_string(inverted_grayscale(short_2))
+        mid_text2 = pytesseract.image_to_string(inverted_grayscale(mid_2))
+        
+        for entry in [short_text1.split(),short_text2.split(),
+                     mid_text1.split(), mid_text2.split(),
+                     long_text1.split(), long_text2.split()]:
+            for token in entry:
+                if len(token) > 3 and token not in options:
+                    options.append(token)
+        if options:
+            return options
+        else:
+            time.sleep(0.2)
     return options
 
 
@@ -335,6 +389,7 @@ def padder(test_img):
 
 def press_key(key, n_times = 1, interrupt=0):
     for _ in range(n_times):
+        time.sleep(0.02)
         pyautogui.keyDown(key)
         pyautogui.keyUp(key)
         time.sleep(interrupt)
@@ -371,7 +426,11 @@ def set_options(right=5,down=5):
     press_key('d',2)
     press_key(';')
 
-        
+
+def similar(a, b):
+    return SequenceMatcher(None, a, b).ratio() 
+
+
 def subscreen(x0,y0,x1,y1, screen):
     sub_img = []
     for i in range(y0,y1,1):
@@ -401,6 +460,20 @@ def wait():
     press_key('w')
     time.sleep(0.2)
     press_key("'")
+
+
+def wait_in_opts(opts):
+    if not opts:
+        return False
+
+    if 'Wait' in opts:
+        return True
+
+    for option in opts:
+        if 'ait' in option:
+            return True
+            
+    return False
 
 
 ################################################################################################################
